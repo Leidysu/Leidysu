@@ -156,6 +156,7 @@ for i, ciudad in enumerate(temperaturas):  # Recorre las ciudades
         for dia in semana:  # Recorre los días de la semana
             suma_temperaturas += dia["temp"]
 
+
         promedio = suma_temperaturas / len(semana)  # Calcula el promedio
         print(f"  semana {j + 1}: Promedio de temperatura = {promedio:.2f}°F")
         # Bucle anidado para calcular y mostrar el promedio por semana y ciudad
