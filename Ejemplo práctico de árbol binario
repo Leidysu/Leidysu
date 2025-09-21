@@ -1,0 +1,183 @@
+using System;
+
+class Node
+{
+    public int Value;
+    public Node Left, Right;
+
+    public Node(int value)
+    {
+        Value = value;
+        Left = Right = null;
+    }
+}
+
+class BinaryTree
+{
+    public Node Root;
+
+    // Inserción
+    public void Insert(int value)
+    {
+        Root = InsertRec(Root, value);
+    }
+
+    private Node InsertRec(Node root, int value)
+    {
+        if (root == null) return new Node(value);
+        if (value < root.Value) root.Left = InsertRec(root.Left, value);
+        else if (value > root.Value) root.Right = InsertRec(root.Right, value);
+        return root;
+    }
+
+    // Búsqueda
+    public bool Search(Node root, int value)
+    {
+        if (root == null) return false;
+        if (root.Value == value) return true;
+        if (value < root.Value) return Search(root.Left, value);
+        else return Search(root.Right, value);
+    }
+
+    // Eliminación
+    public Node Delete(Node root, int value)
+    {
+        if (root == null) return root;
+
+        if (value < root.Value)
+            root.Left = Delete(root.Left, value);
+        else if (value > root.Value)
+            root.Right = Delete(root.Right, value);
+        else
+        {
+            // Caso 1: sin hijos
+            if (root.Left == null && root.Right == null)
+                return null;
+
+            // Caso 2: un hijo
+            if (root.Left == null)
+                return root.Right;
+            else if (root.Right == null)
+                return root.Left;
+
+            // Caso 3: dos hijos → reemplazo por mínimo del subárbol derecho
+            root.Value = MinValue(root.Right);
+            root.Right = Delete(root.Right, root.Value);
+        }
+        return root;
+    }
+
+    private int MinValue(Node root)
+    {
+        int min = root.Value;
+        while (root.Left != null)
+        {
+            min = root.Left.Value;
+            root = root.Left;
+        }
+        return min;
+    }
+
+    // Recorridos
+    public void InOrder(Node root)
+    {
+        if (root != null)
+        {
+            InOrder(root.Left);
+            Console.Write(root.Value + " ");
+            InOrder(root.Right);
+        }
+    }
+
+    public void PreOrder(Node root)
+    {
+        if (root != null)
+        {
+            Console.Write(root.Value + " ");
+            PreOrder(root.Left);
+            PreOrder(root.Right);
+        }
+    }
+
+    public void PostOrder(Node root)
+    {
+        if (root != null)
+        {
+            PostOrder(root.Left);
+            PostOrder(root.Right);
+            Console.Write(root.Value + " ");
+        }
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        BinaryTree tree = new BinaryTree();
+        int opcion, valor;
+
+        do
+        {
+            Console.WriteLine("\n--- MENÚ ÁRBOL BINARIO ---");
+            Console.WriteLine("1. Insertar nodo");
+            Console.WriteLine("2. Recorrido In-Orden");
+            Console.WriteLine("3. Recorrido Pre-Orden");
+            Console.WriteLine("4. Recorrido Post-Orden");
+            Console.WriteLine("5. Buscar elemento");
+            Console.WriteLine("6. Eliminar nodo");
+            Console.WriteLine("0. Salir");
+            Console.Write("Seleccione una opción: ");
+            opcion = int.Parse(Console.ReadLine());
+
+            switch (opcion)
+            {
+                case 1:
+                    Console.Write("Ingrese el valor: ");
+                    valor = int.Parse(Console.ReadLine());
+                    tree.Insert(valor);
+                    Console.WriteLine("Nodo insertado.");
+                    break;
+
+                case 2:
+                    Console.Write("Recorrido In-Orden: ");
+                    tree.InOrder(tree.Root);
+                    Console.WriteLine();
+                    break;
+
+                case 3:
+                    Console.Write("Recorrido Pre-Orden: ");
+                    tree.PreOrder(tree.Root);
+                    Console.WriteLine();
+                    break;
+
+                case 4:
+                    Console.Write("Recorrido Post-Orden: ");
+                    tree.PostOrder(tree.Root);
+                    Console.WriteLine();
+                    break;
+
+                case 5:
+                    Console.Write("Ingrese el valor a buscar: ");
+                    valor = int.Parse(Console.ReadLine());
+                    Console.WriteLine(tree.Search(tree.Root, valor) ? "Encontrado." : "No encontrado.");
+                    break;
+
+                case 6:
+                    Console.Write("Ingrese el valor a eliminar: ");
+                    valor = int.Parse(Console.ReadLine());
+                    tree.Root = tree.Delete(tree.Root, valor);
+                    Console.WriteLine("Nodo eliminado (si existía).");
+                    break;
+
+                case 0:
+                    Console.WriteLine("Saliendo...");
+                    break;
+
+                default:
+                    Console.WriteLine("Opción no válida.");
+                    break;
+            }
+        } while (opcion != 0);
+    }
+}
