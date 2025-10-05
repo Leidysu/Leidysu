@@ -1,0 +1,159 @@
+import java.util.*;
+
+public class Main {
+
+    static class Flight {
+        final String from; final String to; final double price;
+        Flight(String f, String t, double p){ from=f; to=t; price=p; }
+        @Override public String toString(){ return from + " -> " + to + " ($" + price + ")"; }
+    }
+
+    static class Graph {
+        Map<String, List<Flight>> adj = new HashMap<>();
+        Set<String> nodes = new HashSet<>();
+        void add(Flight f){
+            adj.computeIfAbsent(f.from, k -> new ArrayList<>()).add(f);
+            adj.computeIfAbsent(f.to,   k -> new ArrayList<>());
+            nodes.add(f.from); nodes.add(f.to);
+        }
+        List<Flight> neighbors(String u){ return adj.getOrDefault(u, Collections.emptyList()); }
+        Set<String> vertices(){ return nodes; }
+        int edgesCount(){ int m=0; for (var l:adj.values()) m+=l.size(); return m; }
+        void printAdjacency(){
+            System.out.println("\n== Adyacencias ==");
+            List<String> keys = new ArrayList<>(adj.keySet());
+            Collections.sort(keys);
+            for (String u: keys){
+                System.out.print(u + ": ");
+                List<Flight> list = adj.get(u);
+                if (list==null || list.isEmpty()) { System.out.println("(sin salientes)"); continue; }
+                for (int i=0;i<list.size();i++){
+                    System.out.print(list.get(i));
+                    if (i<list.size()-1) System.out.print(", ");
+                }
+                System.out.println();
+            }
+        }
+    }
+
+    static class DijkstraResult {
+        Map<String,Double> dist = new HashMap<>();
+        Map<String,String> par = new HashMap<>();
+        List<String> build(String t){
+            if (!dist.containsKey(t) || dist.get(t)==Double.POSITIVE_INFINITY) return Collections.emptyList();
+            LinkedList<String> path=new LinkedList<>(); String cur=t;
+            while(cur!=null){ path.addFirst(cur); cur=par.get(cur); }
+            return path;
+        }
+    }
+    static DijkstraResult dijkstra(Graph g, String s){
+        DijkstraResult R = new DijkstraResult();
+        for (String v: g.vertices()) R.dist.put(v, Double.POSITIVE_INFINITY);
+        if (!R.dist.containsKey(s)){ System.out.println("Origen no existe: "+s); return R; }
+        R.dist.put(s,0.0);
+        PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingDouble(R.dist::get));
+        pq.add(s);
+        while(!pq.isEmpty()){
+            String u = pq.poll();
+            double du = R.dist.get(u);
+            for (Flight f: g.neighbors(u)){
+                String v=f.to; double w=f.price;
+                if (du + w < R.dist.get(v)){
+                    R.dist.put(v, du+w);
+                    R.par.put(v, u);
+                    pq.remove(v); pq.add(v);
+                }
+            }
+        }
+        return R;
+    }
+
+    static class Degree { Map<String,Integer> out=new HashMap<>(), in=new HashMap<>(); }
+    static Degree degree(Graph g){
+        Degree d = new Degree();
+        for (String v: g.vertices()){ d.out.put(v,0); d.in.put(v,0); }
+        for (String u: g.vertices())
+            for (Flight f: g.neighbors(u)){
+                d.out.put(u, d.out.get(u)+1);
+                d.in.put(f.to, d.in.get(f.to)+1);
+            }
+        return d;
+    }
+
+    static Graph loadEmbedded(){
+        Graph g = new Graph();
+        String[][] data = {
+            {"UIO","GYE","45"},
+            {"UIO","CUE","60"},
+            {"CUE","GYE","30"},
+            {"GYE","LOH","35"},
+            {"UIO","LOH","120"},
+            {"CUE","LOH","40"}
+        };
+        for (String[] row: data) g.add(new Flight(row[0], row[1], Double.parseDouble(row[2])));
+        return g;
+    }
+
+    static void menu(){
+        System.out.println("\n===== Práctica 04 — Vuelos (1 archivo) =====");
+        System.out.println("1) Cargar dataset integrado");
+        System.out.println("2) Listar aeropuertos");
+        System.out.println("3) Listar vuelos (adyacencias)");
+        System.out.println("4) Camino más barato (Dijkstra)");
+        System.out.println("5) Centralidad de grado");
+        System.out.println("0) Salir");
+        System.out.print("Seleccione: ");
+    }
+
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        Graph g = new Graph();
+        while(true){
+            menu();
+            String op = sc.nextLine().trim();
+            switch(op){
+                case "1":
+                    long t0=System.nanoTime();
+                    g = loadEmbedded();
+                    long t1=System.nanoTime();
+                    System.out.printf("Cargados %d aeropuertos, %d vuelos en %.2f ms%n",
+                        g.vertices().size(), g.edgesCount(), (t1-t0)/1e6);
+                    break;
+                case "2":
+                    if (g.vertices().isEmpty()){ System.out.println("Primero use opción 1."); break; }
+                    List<String> vs = new ArrayList<>(g.vertices()); Collections.sort(vs);
+                    System.out.println("Aeropuertos ("+vs.size()+"): " + vs);
+                    break;
+                case "3":
+                    if (g.vertices().isEmpty()){ System.out.println("Primero use opción 1."); break; }
+                    g.printAdjacency(); break;
+                case "4":
+                    if (g.vertices().isEmpty()){ System.out.println("Primero use opción 1."); break; }
+                    System.out.print("Origen: "); String s = sc.nextLine().trim();
+                    System.out.print("Destino: "); String t = sc.nextLine().trim();
+                    long q0=System.nanoTime();
+                    DijkstraResult R = dijkstra(g, s);
+                    long q1=System.nanoTime();
+                    List<String> path = R.build(t);
+                    if (path.isEmpty()) System.out.println("No existe ruta desde "+s+" a "+t);
+                    else {
+                        System.out.println("Ruta más barata: " + String.join(" -> ", path));
+                        System.out.printf("Costo total: $%.2f%n", R.dist.get(t));
+                    }
+                    System.out.printf("Tiempo de ejecución (consulta): %.2f ms%n", (q1-q0)/1e6);
+                    break;
+                case "5":
+                    if (g.vertices().isEmpty()){ System.out.println("Primero use opción 1."); break; }
+                    Degree d = degree(g);
+                    List<String> ks = new ArrayList<>(g.vertices()); Collections.sort(ks);
+                    System.out.println("\nCentralidad de grado (salientes/entrantes):");
+                    for (String v: ks) System.out.printf("%s: out=%d, in=%d%n", v, d.out.get(v), d.in.get(v));
+                    break;
+                case "0":
+                    System.out.println("Adiós"); return;
+                default:
+                    System.out.println("Opción no válida");
+            }
+        }
+    }
+}
